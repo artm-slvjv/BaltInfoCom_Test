@@ -40,6 +40,8 @@ public class Main {
             String line = reader.readLine();
             while (line != null) {
 
+                System.out.println(currentRowIndex);
+
                 if (uniqueRows.contains(line)) {
                     line = reader.readLine();
                     continue;
@@ -125,12 +127,9 @@ public class Main {
         pair.setSecondValueIndex(second);
 
         for (int i = 0; i < groups.size(); i++) {
-            for (Integer element : groups.get(i)
-            ) {
-                if (element.equals(first)) {
+            if (groups.get(i).contains(first)){
                     pair.setFoundGroup(i);
                     return pair;
-                }
             }
         }
         pair.setFirstValueIndex(first);
