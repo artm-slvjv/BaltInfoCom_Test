@@ -1,7 +1,5 @@
 package org.example;
 
-import com.sun.source.tree.IfTree;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -15,7 +13,6 @@ public class Main {
         }
 
         String pathIn = args[0];
-//        String pathIn = "ex.txt";
         String pathOut = args[1];
 
         System.out.println(new Date());
@@ -29,29 +26,24 @@ public class Main {
 
         // список строк
         List<String> allRows = new ArrayList<>();
-        Set<String> uniqueRows = new HashSet<>();
         int currentRowIndex = 0;
-        int ind = 0;
+
+        // список уникальных строк
+        Set<String> uniqueRows = new HashSet<>();
+
+        // потоки
         ExecutorService pool = Executors.newCachedThreadPool();
         List<Callable<Object>> tasks = new ArrayList<>();
 
         try (BufferedReader reader = readFile(pathIn)){
 
             String line = reader.readLine();
-            while (line != null && ind < 1000000) {
-
-                long time =  System.currentTimeMillis();
-//                System.out.println(ind);
-                ind++;
+            while (line != null) {
 
                 if (uniqueRows.contains(line)) {
-
                     line = reader.readLine();
-
                     continue;
-
-                } else
-                    uniqueRows.add(line);
+                } else uniqueRows.add(line);
 
                 allRows.add(line);
                 String[] strings = line.split(";");
@@ -72,53 +64,20 @@ public class Main {
                     if (subString.equals("") | subString.equals("\"\"")) continue;
 
                     int finalCurrentRowIndex = currentRowIndex;
-                    tasks.add(new Callable<>() {
-                        @Override
-                        public Object call() throws Exception {
-
-                            Pair pair = new Pair();
-                            if (map.containsKey(subString)) {
-                                pair = createPair(map.get(subString), finalCurrentRowIndex, groups);
-//                                groupsAdded.add(groupIndex);
-                            }
-
-                            map.put(subString, finalCurrentRowIndex);
-
-                            return pair;
+                    tasks.add(() -> {
+                        Pair pair = new Pair();
+                        if (map.containsKey(subString)) {
+                            pair = createPair(map.get(subString), finalCurrentRowIndex, groups);
                         }
+                        map.put(subString, finalCurrentRowIndex);
+                        return pair;
                     });
-
-//                    futures.add(future);
-
-//                    String subString = strings[i];
-//
-//                    Map<String, Integer> map;
-//                    if (i > columns.size() - 1) {
-//                        map = new HashMap<>();
-//                        columns.add(map);
-//                    } else map = columns.get(i);
-//
-//                    if (subString.equals("") | subString.equals("\"\"")) continue;
-//
-//                    if (map.containsKey(subString)) {
-//                        Integer groupIndex = createPair(map.get(subString), currentRowIndex, groups);
-//                        groupsAdded.add(groupIndex);
-//                    }
-//
-//                    map.put(subString, currentRowIndex);
-
                 }
 
-                List<Future<Object>> futures = null;
                 try {
-                     futures = pool.invokeAll(tasks);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-
-                for (Future future:futures
-                     ) {
-                    try {
+                    List<Future<Object>> futures = pool.invokeAll(tasks);
+                    for (Future future:futures
+                         ) {
                         Pair pair = (Pair) future.get();
 
                         if (pair.isEmpty()) continue;
@@ -130,28 +89,18 @@ public class Main {
                             groups.add(new HashSet<>(Arrays.asList(pair.getFirstValueIndex(), pair.getSecondValueIndex())));
                             groupsAdded.add(groups.size() - 1);
                         }
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    } catch (ExecutionException e) {
-                        throw new RuntimeException(e);
                     }
-
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
 
-
                 if (groupsAdded.size() > 1) {
-//                    long time =  System.currentTimeMillis();
                     mergeGroups(groupsAdded, groups);
-//                    long time2 =  System.currentTimeMillis();
-//                    System.out.println(time2 - time);
                 }
 
                 line = reader.readLine();
                 currentRowIndex++;
                 tasks.clear();
-
-                long time2 =  System.currentTimeMillis();
-                System.out.println(ind + " ---- " + (time2 - time));
 
             }
 
@@ -171,47 +120,30 @@ public class Main {
     }
 
     private static Pair createPair(Integer first, Integer second, List<Set<Integer>> groups) {
-//                    long time =  System.currentTimeMillis();
 
         Pair pair = new Pair();
+        pair.setSecondValueIndex(second);
 
         for (int i = 0; i < groups.size(); i++) {
             for (Integer element : groups.get(i)
             ) {
                 if (element.equals(first)) {
-//                    groups.get(i).add(second);
-
-//                    long time2 =  System.currentTimeMillis();
-//                    System.out.println(time2 - time);
-
                     pair.setFoundGroup(i);
-                    pair.setSecondValueIndex(second);
-
                     return pair;
                 }
             }
         }
-//        groups.add(new HashSet<>(Arrays.asList(first, second)));
-//        return groups.size() - 1;
-
         pair.setFirstValueIndex(first);
-        pair.setSecondValueIndex(second);
-
         return pair;
+
     }
 
     private static void mergeGroups(Set<Integer> groupsAdded, List<Set<Integer>> groups) {
 
         List<Integer> groupsAddedList = new ArrayList<>(groupsAdded.stream().toList());
-//        Collections.sort(groupsAddedList);
         groupsAddedList.sort((o1, o2) -> o1 - o2);
         Integer groupIndex = groupsAddedList.get(0);
         Set<Integer> sourceGroup = groups.get(groupIndex);
-
-
-
-//        System.out.println("--" + groupsAdded.size());
-//        System.out.println("----" + groups.size());
 
         for (int i = 1; i < groupsAdded.size(); i++) {
             groupIndex = groupsAddedList.get(i);
@@ -219,16 +151,10 @@ public class Main {
             sourceGroup.addAll(currentGroup);
         }
 
-//        for (int i = 1; i < groupsAdded.size(); i++) {
-//            groupIndex = groupsAddedList.get(i);
-//            groups.remove((int) groupIndex);
-//        }
-
         for (int i = groupsAdded.size() - 1; i > 0; i--) {
             groupIndex = groupsAddedList.get(i);
             groups.remove((int) groupIndex);
         }
-
 
     }
 

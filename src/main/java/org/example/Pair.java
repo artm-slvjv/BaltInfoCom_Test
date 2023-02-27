@@ -2,9 +2,9 @@ package org.example;
 
 public class Pair {
     
-    public Integer foundGroup;
-    public Integer firstValueIndex;
-    public Integer secondValueIndex;
+    private Integer foundGroup;
+    private Integer firstValueIndex;
+    private Integer secondValueIndex;
 
     public Pair() {
         this.foundGroup = null;
@@ -39,6 +39,5 @@ public class Pair {
     public boolean isEmpty(){
         return (this.foundGroup == null & this.firstValueIndex == null & this.secondValueIndex == null);
     }
-
 
 }
