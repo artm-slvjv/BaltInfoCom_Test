@@ -31,16 +31,12 @@ public class Main {
         // список уникальных строк
         Set<String> uniqueRows = new HashSet<>();
 
-        // потоки
-        ExecutorService pool = Executors.newCachedThreadPool();
-        List<Callable<Object>> tasks = new ArrayList<>();
-
         try (BufferedReader reader = readFile(pathIn)){
 
             String line = reader.readLine();
             while (line != null) {
 
-                System.out.println(currentRowIndex);
+//                System.out.println(currentRowIndex);
 
                 if (uniqueRows.contains(line)) {
                     line = reader.readLine();
@@ -65,35 +61,11 @@ public class Main {
 
                     if (subString.equals("") | subString.equals("\"\"")) continue;
 
-                    int finalCurrentRowIndex = currentRowIndex;
-                    tasks.add(() -> {
-                        Pair pair = new Pair();
-                        if (map.containsKey(subString)) {
-                            pair = createPair(map.get(subString), finalCurrentRowIndex, groups);
-                        }
-                        map.put(subString, finalCurrentRowIndex);
-                        return pair;
-                    });
-                }
-
-                try {
-                    List<Future<Object>> futures = pool.invokeAll(tasks);
-                    for (Future future:futures
-                         ) {
-                        Pair pair = (Pair) future.get();
-
-                        if (pair.isEmpty()) continue;
-
-                        if (pair.getFoundGroup() != null) {
-                            groups.get(pair.getFoundGroup()).add(pair.getSecondValueIndex());
-                            groupsAdded.add(pair.getFoundGroup());
-                        } else {
-                            groups.add(new HashSet<>(Arrays.asList(pair.getFirstValueIndex(), pair.getSecondValueIndex())));
-                            groupsAdded.add(groups.size() - 1);
-                        }
+                    if (map.containsKey(subString)) {
+                        Integer groupIndex = createPair(map.get(subString), currentRowIndex, groups);
+                        groupsAdded.add(groupIndex);
                     }
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
+                    map.put(subString, currentRowIndex);
                 }
 
                 if (groupsAdded.size() > 1) {
@@ -102,7 +74,6 @@ public class Main {
 
                 line = reader.readLine();
                 currentRowIndex++;
-                tasks.clear();
 
             }
 
@@ -114,27 +85,21 @@ public class Main {
             e.printStackTrace();
         }
 
-        pool.shutdown();
-
         System.out.println("Done");
         System.out.println(new Date());
 
     }
 
-    private static Pair createPair(Integer first, Integer second, List<Set<Integer>> groups) {
-
-        Pair pair = new Pair();
-        pair.setSecondValueIndex(second);
+    private static Integer createPair(Integer first, Integer second, List<Set<Integer>> groups) {
 
         for (int i = 0; i < groups.size(); i++) {
             if (groups.get(i).contains(first)){
-                    pair.setFoundGroup(i);
-                    return pair;
+                groups.get(i).add(second);
+                return i;
             }
         }
-        pair.setFirstValueIndex(first);
-        return pair;
-
+        groups.add(new HashSet<>(Arrays.asList(first, second)));
+        return groups.size() - 1;
     }
 
     private static void mergeGroups(Set<Integer> groupsAdded, List<Set<Integer>> groups) {
